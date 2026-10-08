@@ -19,6 +19,8 @@ import { MessageComposer } from './components/MessageComposer';
 import { ProfileDrawer } from './components/ProfileDrawer';
 import { CallModal } from './components/CallModal';
 import { NewChatModal } from './components/NewChatModal';
+import { PhoneDialerModal } from './components/PhoneDialerModal';
+import { AddContactModal } from './components/AddContactModal';
 import { MediaLightbox } from './components/MediaLightbox';
 import { SettingsModal } from './components/SettingsModal';
 import { generateAIResponse } from './services/aiService';
@@ -32,7 +34,7 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as Conversation[];
-        if (parsed.some((c) => c.id === 'conv_aya_bot')) {
+        if (parsed.some((c) => c.id === 'conv_sarah_client')) {
           return parsed;
         }
         return INITIAL_CONVERSATIONS;
@@ -53,6 +55,9 @@ export default function App() {
 
   // Modals & Lightbox
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
+  const [isDialerOpen, setIsDialerOpen] = useState(false);
+  const [isAddContactOpen, setIsAddContactOpen] = useState(false);
+  const [contactPreFillPhone, setContactPreFillPhone] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [lightboxData, setLightboxData] = useState<{ isOpen: boolean; url: string; title?: string }>({
     isOpen: false,
@@ -107,8 +112,8 @@ export default function App() {
     } else if (tab === 'starred') {
       setActiveFilter('favorites');
     } else if (tab === 'calls') {
-      // Prompt call with active participant
-      startVoiceCall();
+      // Open Phone Dialer Keypad with DTMF and Old Numbers
+      setIsDialerOpen(true);
     } else {
       setActiveFilter('all');
     }
@@ -242,13 +247,15 @@ export default function App() {
   };
 
   // Send a voice note
-  const handleSendVoiceNote = () => {
+  const handleSendVoiceNote = (audioBlobUrl?: string, spokenText?: string) => {
     if (!activeConversation) return;
     const timeString = new Intl.DateTimeFormat('en-US', {
       hour: 'numeric',
       minute: 'numeric',
       hour12: true,
     }).format(new Date());
+
+    const duration = audioBlobUrl ? 8 : 18;
 
     const voiceMessage: Message = {
       id: `msg_voice_${Date.now()}`,
@@ -258,8 +265,10 @@ export default function App() {
       isOutgoing: true,
       status: 'read',
       voiceNote: {
-        durationSec: 18,
+        durationSec: duration,
         waveform: [20, 35, 60, 80, 50, 40, 70, 95, 85, 60, 45, 30, 55, 75, 45, 25, 35, 20],
+        spokenText: spokenText || 'Encrypted voice message from Alex Rivera.',
+        audioBlobUrl: audioBlobUrl,
       },
     };
 
@@ -268,7 +277,7 @@ export default function App() {
         c.id === activeConversation.id
           ? {
               ...c,
-              lastMessage: 'Voice message (0:18)',
+              lastMessage: `Voice message (0:${duration < 10 ? '0' : ''}${duration})`,
               lastTimestamp: timeString,
               messages: [...c.messages, voiceMessage],
             }
@@ -581,6 +590,83 @@ export default function App() {
     handleStartChatWithParticipant(newParticipant);
   };
 
+  // Add & Save a new phone number / contact
+  const handleSaveNewContact = (newContact: Participant, startChat = false, callNow = false) => {
+    const existing = conversations.find((c) => c.participant.phone === newContact.phone);
+
+    if (existing) {
+      if (startChat) {
+        setActiveConversationId(existing.id);
+      }
+      if (callNow) {
+        setCallState({
+          isActive: true,
+          type: 'voice',
+          participant: existing.participant,
+          status: 'connecting',
+          durationSeconds: 0,
+          isMuted: false,
+          isVideoEnabled: false,
+          isSpeakerOn: true,
+        });
+        setTimeout(() => {
+          setCallState((prev) => ({ ...prev, status: 'connected' }));
+        }, 2200);
+      }
+      return;
+    }
+
+    const newConv: Conversation = {
+      id: `conv_contact_${Date.now()}`,
+      participant: newContact,
+      lastMessage: `Saved contact: ${newContact.phone || newContact.name}`,
+      lastTimestamp: 'Just now',
+      unreadCount: 0,
+      isPinned: false,
+      isFavorite: false,
+      isMuted: false,
+      messages: [
+        {
+          id: `msg_contact_${Date.now()}`,
+          senderId: newContact.id,
+          senderName: newContact.name,
+          text: `Contact created for ${newContact.name} (${newContact.phone}). Ready to communicate via encrypted chat, audio call, or direct WhatsApp.`,
+          timestamp: 'Just now',
+          isOutgoing: false,
+          status: 'read' as const,
+          clientLeadCard: newContact.clientLead,
+          suggestions: [
+            `Chat with ${newContact.name} on WhatsApp`,
+            `Call ${newContact.phone}`,
+            'Send project proposal',
+          ],
+        },
+      ],
+    };
+
+    setConversations((prev) => [newConv, ...prev]);
+
+    if (startChat) {
+      setActiveConversationId(newConv.id);
+    }
+
+    if (callNow) {
+      setCallState({
+        isActive: true,
+        type: 'voice',
+        participant: newContact,
+        status: 'connecting',
+        durationSeconds: 0,
+        isMuted: false,
+        isVideoEnabled: false,
+        isSpeakerOn: true,
+      });
+      setTimeout(() => {
+        setCallState((prev) => ({ ...prev, status: 'connected' }));
+      }, 2200);
+    }
+  };
+
   // Filter messages if search query inside chat
   const displayedMessages = activeConversation
     ? activeConversation.messages.filter((m) =>
@@ -614,6 +700,11 @@ export default function App() {
           activeFilter={activeFilter}
           setActiveFilter={setActiveFilter}
           onOpenNewChat={() => setIsNewChatOpen(true)}
+          onOpenDialer={() => setIsDialerOpen(true)}
+          onOpenAddContact={() => {
+            setContactPreFillPhone('');
+            setIsAddContactOpen(true);
+          }}
         />
       </div>
 
@@ -793,6 +884,40 @@ export default function App() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         currentUser={CURRENT_USER}
+      />
+
+      {/* Phone Dialer Keypad & Numbers Modal */}
+      <PhoneDialerModal
+        isOpen={isDialerOpen}
+        onClose={() => setIsDialerOpen(false)}
+        onOpenAddContact={(phone) => {
+          setContactPreFillPhone(phone || '');
+          setIsAddContactOpen(true);
+        }}
+        onInitiateCall={(target, phoneNumber) => {
+          setCallState({
+            isActive: true,
+            type: 'voice',
+            participant: target,
+            status: 'connecting',
+            durationSeconds: 0,
+            isMuted: false,
+            isVideoEnabled: false,
+            isSpeakerOn: true,
+          });
+          setTimeout(() => {
+            setCallState((prev) => ({ ...prev, status: 'connected' }));
+          }, 2400);
+        }}
+        contacts={conversations.map((c) => c.participant)}
+      />
+
+      {/* Add New Contact & Phone Number Modal */}
+      <AddContactModal
+        isOpen={isAddContactOpen}
+        onClose={() => setIsAddContactOpen(false)}
+        onSaveContact={handleSaveNewContact}
+        initialPhoneNumber={contactPreFillPhone}
       />
     </div>
   );

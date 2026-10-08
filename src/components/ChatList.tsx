@@ -14,6 +14,10 @@ import {
   Database,
   Users,
   Building2,
+  Phone,
+  Briefcase,
+  MessageCircle,
+  UserPlus,
 } from 'lucide-react';
 import { Conversation, ChatFilter } from '../types/chat';
 
@@ -24,6 +28,8 @@ interface ChatListProps {
   activeFilter: ChatFilter;
   setActiveFilter: (filter: ChatFilter) => void;
   onOpenNewChat: () => void;
+  onOpenDialer?: () => void;
+  onOpenAddContact?: () => void;
 }
 
 export const ChatList: React.FC<ChatListProps> = ({
@@ -33,12 +39,16 @@ export const ChatList: React.FC<ChatListProps> = ({
   activeFilter,
   setActiveFilter,
   onOpenNewChat,
+  onOpenDialer,
+  onOpenAddContact,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Filtering
   const filteredConversations = conversations.filter((c) => {
     // Filter chip check
+    if (activeFilter === 'client_leads' && !(c.participant.category === 'Client Lead' || c.participant.clientLead)) return false;
+    if (activeFilter === 'us_companies' && !(c.participant.isUSCompany || c.participant.category === 'USA Enterprise')) return false;
     if (activeFilter === 'unread' && c.unreadCount === 0) return false;
     if (activeFilter === 'ai' && !c.participant.isAI) return false;
     if (activeFilter === 'teams' && c.participant.isAI) return false;
@@ -66,6 +76,10 @@ export const ChatList: React.FC<ChatListProps> = ({
         return <Database className="w-3 h-3 text-[#075E54]" />;
       case 'Company & KRA':
         return <Building2 className="w-3 h-3 text-[#075E54]" />;
+      case 'USA Enterprise':
+        return <Building2 className="w-3 h-3 text-[#128C7E]" />;
+      case 'Client Lead':
+        return <Briefcase className="w-3 h-3 text-[#25D366]" />;
       case 'Writing':
         return <FileText className="w-3 h-3 text-[#075E54]" />;
       default:
@@ -85,7 +99,23 @@ export const ChatList: React.FC<ChatListProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onOpenAddContact}
+              className="p-2 rounded-full hover:bg-[#E9EDEF] text-[#54656F] hover:text-[#128C7E] transition-colors"
+              title="Add New Phone Number / Contact"
+            >
+              <UserPlus className="w-4.5 h-4.5" />
+            </button>
+            <button
+              type="button"
+              onClick={onOpenDialer}
+              className="p-2 rounded-full hover:bg-[#E9EDEF] text-[#54656F] hover:text-[#128C7E] transition-colors"
+              title="Open Phone Dialer & Keypad"
+            >
+              <Phone className="w-4.5 h-4.5" />
+            </button>
             <button
               type="button"
               onClick={onOpenNewChat}
@@ -123,6 +153,8 @@ export const ChatList: React.FC<ChatListProps> = ({
           {(
             [
               { id: 'all', label: 'All' },
+              { id: 'client_leads', label: 'Clients (Web & Bots)' },
+              { id: 'us_companies', label: 'USA Companies' },
               { id: 'unread', label: 'Unread' },
               { id: 'ai', label: 'AI Bots' },
               { id: 'teams', label: 'Team' },

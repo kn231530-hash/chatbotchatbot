@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Mic,
   MicOff,
@@ -10,6 +10,13 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Participant, CallState } from '../types/chat';
+import {
+  startRingtone,
+  playConnectedTone,
+  playHangupTone,
+  speakText,
+  stopSpeaking,
+} from '../utils/audioSystem';
 
 interface CallModalProps {
   callState: CallState;
@@ -21,7 +28,54 @@ export const CallModal: React.FC<CallModalProps> = ({ callState, onEndCall }) =>
   const [isVideoOn, setIsVideoOn] = useState(callState.type === 'video');
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
   const [duration, setDuration] = useState(0);
+  const ringtoneControllerRef = useRef<{ stop: () => void } | null>(null);
 
+  // Handle ringing & connected sound effects
+  useEffect(() => {
+    if (!callState.isActive) {
+      ringtoneControllerRef.current?.stop();
+      stopSpeaking();
+      return;
+    }
+
+    if (callState.status === 'connecting') {
+      // Start telephone ringtone
+      ringtoneControllerRef.current = startRingtone();
+    } else if (callState.status === 'connected') {
+      // Stop ringing and play connected tone
+      ringtoneControllerRef.current?.stop();
+      playConnectedTone();
+
+      // Real Audible Speech from the participant
+      const currentParticipant = callState.participant;
+      if (currentParticipant && isSpeakerOn) {
+        let greeting = `Hello Alex! Encrypted voice line connected.`;
+        if (currentParticipant.name.includes('Aya')) {
+          greeting = `Hello Alex! This is Aya from the Online Company and KRA Registry. All eighteen thousand four hundred companies and accounts are verified. How can I help you today?`;
+        } else if (currentParticipant.name.includes('Marcus')) {
+          greeting = `Hey Alex, Marcus here. The database migration script is holding zero replica lag on staging. Ready for maintenance.`;
+        } else if (currentParticipant.name.includes('Elena')) {
+          greeting = `Hi Alex! Just reviewing the mobile split view design tokens. Everything looks super tactile and responsive.`;
+        } else if (currentParticipant.phone) {
+          greeting = `Thank you for calling ${currentParticipant.name}. Your secure audio call is now active and encrypted.`;
+        }
+
+        setTimeout(() => {
+          speakText(greeting, {
+            voicePitch: currentParticipant.isAI ? 1.1 : 1.0,
+            voiceRate: 1.0,
+          });
+        }, 300);
+      }
+    }
+
+    return () => {
+      ringtoneControllerRef.current?.stop();
+      stopSpeaking();
+    };
+  }, [callState.status, callState.isActive, callState.participant, isSpeakerOn]);
+
+  // Duration timer
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (callState.status === 'connected') {
@@ -36,10 +90,25 @@ export const CallModal: React.FC<CallModalProps> = ({ callState, onEndCall }) =>
 
   const participant = callState.participant;
 
+  const handleHangup = () => {
+    ringtoneControllerRef.current?.stop();
+    stopSpeaking();
+    playHangupTone();
+    onEndCall();
+  };
+
   const formatDuration = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
     return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  const handleSpeakerToggle = () => {
+    const nextSpeaker = !isSpeakerOn;
+    setIsSpeakerOn(nextSpeaker);
+    if (!nextSpeaker) {
+      stopSpeaking();
+    }
   };
 
   return (
@@ -55,11 +124,11 @@ export const CallModal: React.FC<CallModalProps> = ({ callState, onEndCall }) =>
 
         <button
           type="button"
-          onClick={() => setIsSpeakerOn((p) => !p)}
+          onClick={handleSpeakerToggle}
           className={`p-2 rounded-full transition-colors ${
-            isSpeakerOn ? 'bg-white/20 text-white' : 'text-white/50'
+            isSpeakerOn ? 'bg-white/20 text-[#25D366]' : 'text-white/50'
           }`}
-          title="Speaker Toggle"
+          title={isSpeakerOn ? 'Speaker On' : 'Speaker Muted'}
         >
           {isSpeakerOn ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
         </button>
@@ -78,7 +147,7 @@ export const CallModal: React.FC<CallModalProps> = ({ callState, onEndCall }) =>
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-4">
                 <span className="text-white text-xs font-medium">
-                  HD Live Stream (Simulated)
+                  HD Encrypted Live Feed
                 </span>
               </div>
             </div>
@@ -103,14 +172,17 @@ export const CallModal: React.FC<CallModalProps> = ({ callState, onEndCall }) =>
 
         <div className="text-center mt-3">
           <h2 className="text-2xl font-bold text-white tracking-tight">{participant.name}</h2>
+          {participant.phone && (
+            <p className="text-xs font-mono text-[#8696A0] mt-0.5">{participant.phone}</p>
+          )}
           <p className="text-sm text-[#8ff4e3] mt-1 font-medium">
             {callState.status === 'connecting'
-              ? 'Ringing secure line...'
-              : `Connected • ${formatDuration(duration)}`}
+              ? 'Ringing telephone line (Audio Ringing)...'
+              : `Connected • Audible Voice Active • ${formatDuration(duration)}`}
           </p>
           {participant.isAI && (
             <p className="text-xs text-[#8696A0] mt-1">
-              Neural Voice Synthesis Engine • 48kHz
+              Neural Speech Synthesis Engine • 48kHz Audio
             </p>
           )}
         </div>
@@ -145,7 +217,7 @@ export const CallModal: React.FC<CallModalProps> = ({ callState, onEndCall }) =>
         {/* End Call */}
         <button
           type="button"
-          onClick={onEndCall}
+          onClick={handleHangup}
           className="w-16 h-16 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center shadow-lg shadow-red-600/40 transition-transform active:scale-90"
           title="End Call"
         >

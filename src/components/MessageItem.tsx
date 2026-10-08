@@ -12,6 +12,7 @@ import {
 import { Message, Participant, PollData } from '../types/chat';
 import { AudioPlayer } from './AudioPlayer';
 import { CompanyStatsCard } from './CompanyStatsCard';
+import { ClientLeadCard } from './ClientLeadCard';
 
 interface MessageItemProps {
   message: Message;
@@ -125,6 +126,11 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         {/* Company Stats and Counter Card */}
         {message.companyStats && (
           <CompanyStatsCard data={message.companyStats} />
+        )}
+
+        {/* Client Lead Inquiry Card */}
+        {message.clientLeadCard && (
+          <ClientLeadCard lead={message.clientLeadCard} />
         )}
 
         {/* Syntax-Highlighted Code Block */}

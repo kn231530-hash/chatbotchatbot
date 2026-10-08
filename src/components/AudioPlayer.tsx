@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause } from 'lucide-react';
+import { Play, Pause, Volume2 } from 'lucide-react';
 import { VoiceNote } from '../types/chat';
+import { speakText, stopSpeaking } from '../utils/audioSystem';
 
 interface AudioPlayerProps {
   voiceNote: VoiceNote;
@@ -12,6 +13,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ voiceNote, isOutgoing 
   const [currentProgress, setCurrentProgress] = useState(0); // 0 to 1
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
 
   const duration = voiceNote.durationSec;
   const currentSeconds = Math.floor(currentProgress * duration);
@@ -23,11 +25,45 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ voiceNote, isOutgoing 
   };
 
   const togglePlay = () => {
-    setIsPlaying((prev) => !prev);
+    if (isPlaying) {
+      setIsPlaying(false);
+      stopSpeaking();
+      if (audioElementRef.current) {
+        audioElementRef.current.pause();
+      }
+    } else {
+      setIsPlaying(true);
+      if (voiceNote.audioBlobUrl) {
+        if (!audioElementRef.current) {
+          audioElementRef.current = new Audio(voiceNote.audioBlobUrl);
+          audioElementRef.current.onended = () => setIsPlaying(false);
+        }
+        audioElementRef.current.playbackRate = playbackSpeed;
+        audioElementRef.current.play().catch(() => {});
+      } else {
+        const textToSpeak =
+          voiceNote.spokenText ||
+          (isOutgoing
+            ? 'Hey, this is Alex Rivera sending a quick audio note on the architecture update.'
+            : 'Hey Alex! The migration script passed all dry runs with zero replica lag. Database telemetry is completely nominal.');
+
+        speakText(textToSpeak, {
+          voiceRate: playbackSpeed,
+          onEnd: () => {
+            setIsPlaying(false);
+            setCurrentProgress(0);
+          },
+        });
+      }
+    }
   };
 
   const handleSpeedToggle = () => {
-    setPlaybackSpeed((prev) => (prev === 1 ? 1.5 : prev === 1.5 ? 2 : 1));
+    const nextSpeed = playbackSpeed === 1 ? 1.5 : playbackSpeed === 1.5 ? 2 : 1;
+    setPlaybackSpeed(nextSpeed);
+    if (audioElementRef.current) {
+      audioElementRef.current.playbackRate = nextSpeed;
+    }
   };
 
   useEffect(() => {
@@ -38,6 +74,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ voiceNote, isOutgoing 
           const step = 0.1 / duration;
           if (prev + step >= 1) {
             setIsPlaying(false);
+            stopSpeaking();
             return 0;
           }
           return prev + step;
@@ -49,6 +86,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ voiceNote, isOutgoing 
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      stopSpeaking();
+      if (audioElementRef.current) {
+        audioElementRef.current.pause();
+      }
     };
   }, [isPlaying, duration, playbackSpeed]);
 

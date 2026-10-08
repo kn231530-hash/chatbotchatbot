@@ -73,6 +73,25 @@ At the end, suggest 2 or 3 quick concise follow-up actions.`;
 
   const lower = prompt.toLowerCase();
 
+  // USA Client Inquiries & Website / Chatbot Development requests
+  if (
+    lower.includes('website') ||
+    lower.includes('client') ||
+    lower.includes('hire') ||
+    lower.includes('usa') ||
+    lower.includes('work') ||
+    lower.includes('project')
+  ) {
+    return {
+      text: `Here are active USA Client Inquiries looking to contract developers for Websites and Custom AI Chatbots:\n\n1. Sarah Jenkins (Apex Retail Brands — New York, NY, USA)\n• Project: Headless E-Commerce Website & 24/7 AI Customer Support Chatbot\n• Budget: $24,000 USD\n• WhatsApp: +1 (212) 555-0184\n\n2. David Miller (Nova Fintech Solutions — Austin, TX, USA)\n• Project: Fintech Marketing Portal & Automated KYC Onboarding Chatbot\n• Budget: $32,000 USD\n• WhatsApp: +1 (512) 555-0192\n\n3. Rachel Adams (Luxury Estates — Miami, FL, USA)\n• Project: Real Estate Agency Showcase & WhatsApp Lead Capture Bot\n• Budget: $18,500 USD\n• WhatsApp: +1 (305) 555-0143\n\nYou can click the direct WhatsApp links or dial their verified US numbers to begin work immediately.`,
+      suggestions: [
+        'Open Sarah Jenkins WhatsApp (+1 212 555-0184)',
+        'Open David Miller WhatsApp (+1 512 555-0192)',
+        'Review contract milestones',
+      ],
+    };
+  }
+
   // Aya: Online Company Counter & KRA Intelligence Bot
   if (
     bot.id === 'bot_aya' ||

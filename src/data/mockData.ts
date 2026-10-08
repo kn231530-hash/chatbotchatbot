@@ -6,6 +6,9 @@ import ayaAvatar from '../assets/images/avatar_aya_company_bot_1791443057084.jpg
 import marcusAvatar from '../assets/images/avatar_marcus_dev_1791442399928.jpg';
 import elenaAvatar from '../assets/images/avatar_elena_design_1791442410395.jpg';
 import sharedPhoto from '../assets/images/chat_shared_photo_1791442421129.jpg';
+import sarahAvatar from '../assets/images/avatar_sarah_client_1791445783296.jpg';
+import davidAvatar from '../assets/images/avatar_david_fintech_1791445800976.jpg';
+import stripeAvatar from '../assets/images/avatar_stripe_usa_1791445812020.jpg';
 
 export const CURRENT_USER: Participant = {
   id: 'user_me',
@@ -17,6 +20,73 @@ export const CURRENT_USER: Participant = {
   statusText: 'Focusing on distributed cache refactoring',
   bio: 'Building resilient cloud-native architectures.',
   email: 'alex.rivera@emerald.dev',
+};
+
+export const SARAH_CLIENT: Participant = {
+  id: 'client_sarah_ny',
+  name: 'Sarah Jenkins',
+  avatar: sarahAvatar,
+  role: 'VP Digital Commerce, New York, USA',
+  isAI: false,
+  category: 'Client Lead',
+  status: 'online',
+  statusText: 'Client Lead • Inquiring for E-Commerce & AI Chatbot',
+  bio: 'Executive at Apex Retail Brands USA. Looking to hire a developer to build a modern headless e-commerce website and automated customer service chatbot.',
+  phone: '+1 (212) 555-0184',
+  whatsappNumber: '+1 (212) 555-0184',
+  email: 'sarah.jenkins@apexretail.us',
+  location: 'New York, NY, USA',
+  clientLead: {
+    projectType: 'E-Commerce & Chatbot',
+    budget: '$24,000 USD',
+    location: 'New York, NY, USA',
+    companyName: 'Apex Retail Brands USA',
+    whatsappNumber: '+1 (212) 555-0184',
+    status: 'New Lead',
+    scope: 'Complete responsive website redesign in Next.js + 24/7 AI chatbot handling customer order inquiries, sizing guidance, and automated return processing.',
+  },
+};
+
+export const DAVID_FINTECH: Participant = {
+  id: 'client_david_tx',
+  name: 'David Miller',
+  avatar: davidAvatar,
+  role: 'Founder & CTO, Austin, Texas, USA',
+  isAI: false,
+  category: 'Client Lead',
+  status: 'online',
+  statusText: 'Client Lead • Ready to contract for Fintech Web & Bot',
+  bio: 'Founder at Nova Fintech USA. Commissioning a high-performance marketing web app and automated KYC verification onboarding chatbot.',
+  phone: '+1 (512) 555-0192',
+  whatsappNumber: '+1 (512) 555-0192',
+  email: 'david@novafintech.io',
+  location: 'Austin, TX, USA',
+  clientLead: {
+    projectType: 'Full-Stack Web App',
+    budget: '$32,000 USD',
+    location: 'Austin, TX, USA',
+    companyName: 'Nova Fintech Solutions USA',
+    whatsappNumber: '+1 (512) 555-0192',
+    status: 'In Discussion',
+    scope: 'Interactive marketing web portal with real-time rate calculators and compliance chatbot for document collection and instant identity triage.',
+  },
+};
+
+export const STRIPE_USA: Participant = {
+  id: 'company_stripe_usa',
+  name: 'Stripe USA Enterprise',
+  avatar: stripeAvatar,
+  role: 'Financial Infrastructure & Payments, San Francisco, USA',
+  isAI: false,
+  isUSCompany: true,
+  category: 'USA Enterprise',
+  status: 'online',
+  statusText: 'Verified USA Company • San Francisco, CA',
+  bio: 'Headquartered in San Francisco, CA. Real-time enterprise payments, billing webhooks, and modern developer infrastructure.',
+  phone: '+1 (888) 963-8955',
+  whatsappNumber: '+1 (888) 963-8955',
+  email: 'enterprise-us@stripe.com',
+  location: 'San Francisco, CA, USA',
 };
 
 export const AYA_PARTICIPANT: Participant = {
@@ -102,6 +172,158 @@ export const INITIAL_CONVERSATIONS: Conversation[] = [
           { emoji: '🔥', count: 3, reactedByMe: true },
           { emoji: '⚡', count: 2, reactedByMe: false },
         ],
+      },
+    ],
+  },
+  {
+    id: 'conv_sarah_client',
+    participant: SARAH_CLIENT,
+    lastMessage: 'Voice message (0:26) • Looking to hire for E-Commerce Web & AI Bot ($24k)',
+    lastTimestamp: '11:05 AM',
+    unreadCount: 1,
+    isPinned: true,
+    isFavorite: true,
+    isMuted: false,
+    messages: [
+      {
+        id: 'msg_sarah_1',
+        senderId: 'client_sarah_ny',
+        senderName: 'Sarah Jenkins',
+        text: 'Hello Alex! I found your portfolio online and I am reaching out on behalf of Apex Retail Brands in New York.',
+        timestamp: '11:00 AM',
+        isOutgoing: false,
+        status: 'read',
+      },
+      {
+        id: 'msg_sarah_2',
+        senderId: 'client_sarah_ny',
+        senderName: 'Sarah Jenkins',
+        text: 'Here is a quick voice note explaining what we need for our upcoming quarter:',
+        timestamp: '11:02 AM',
+        isOutgoing: false,
+        status: 'read',
+        voiceNote: {
+          durationSec: 26,
+          waveform: [25, 45, 70, 85, 60, 50, 75, 90, 80, 65, 55, 40, 65, 80, 70, 60, 45, 30, 40, 60, 50, 30, 20, 15],
+          spokenText: 'Hi Alex! Sarah here from Apex Retail in New York. We reviewed your portfolio and we want to hire you to build our new e-commerce website and integrate an automated AI customer support chatbot. Please check our project brief and message me on WhatsApp to finalize the contract.',
+        },
+      },
+      {
+        id: 'msg_sarah_3',
+        senderId: 'client_sarah_ny',
+        senderName: 'Sarah Jenkins',
+        text: 'Here are our verified project requirements and WhatsApp contact details:',
+        timestamp: '11:05 AM',
+        isOutgoing: false,
+        status: 'read',
+        clientLeadCard: SARAH_CLIENT.clientLead,
+        suggestions: [
+          'Accept project & open WhatsApp',
+          'Schedule discovery call',
+          'Send portfolio examples',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'conv_david_fintech',
+    participant: DAVID_FINTECH,
+    lastMessage: 'Voice message (0:24) • Fintech Web & KYC Onboarding Bot ($32k)',
+    lastTimestamp: '10:52 AM',
+    unreadCount: 0,
+    isPinned: true,
+    isFavorite: true,
+    isMuted: false,
+    messages: [
+      {
+        id: 'msg_david_1',
+        senderId: 'client_david_tx',
+        senderName: 'David Miller',
+        text: 'Alex, we are ready to move forward on the Nova Fintech portal.',
+        timestamp: '10:50 AM',
+        isOutgoing: false,
+        status: 'read',
+        voiceNote: {
+          durationSec: 24,
+          waveform: [30, 50, 75, 90, 80, 65, 45, 30, 60, 85, 75, 60, 45, 35, 50, 70, 60, 45, 30, 20, 15, 10],
+          spokenText: 'Hey Alex, David Miller calling from Austin, Texas. We need a high-converting responsive website for our fintech platform, plus an automated compliance chatbot to guide users through automated KYC verification. Connect with me on WhatsApp so we can sign the agreement.',
+        },
+      },
+      {
+        id: 'msg_david_2',
+        senderId: 'client_david_tx',
+        senderName: 'David Miller',
+        text: 'Contract scope for the marketing platform and KYC chatbot:',
+        timestamp: '10:52 AM',
+        isOutgoing: false,
+        status: 'read',
+        clientLeadCard: DAVID_FINTECH.clientLead,
+        suggestions: [
+          'Review scope on WhatsApp',
+          'Send contract draft',
+          'Call David directly',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'conv_stripe_usa',
+    participant: STRIPE_USA,
+    lastMessage: 'Stripe US Developer Partner session: Webhook cluster latency validated.',
+    lastTimestamp: '10:15 AM',
+    unreadCount: 0,
+    isPinned: false,
+    isFavorite: true,
+    isMuted: false,
+    messages: [
+      {
+        id: 'msg_stripe_1',
+        senderId: 'company_stripe_usa',
+        senderName: 'Stripe USA Enterprise',
+        text: 'Welcome to Stripe US developer partner services in San Francisco, CA.',
+        timestamp: '10:12 AM',
+        isOutgoing: false,
+        status: 'read',
+        voiceNote: {
+          durationSec: 22,
+          waveform: [20, 35, 55, 75, 85, 90, 70, 55, 40, 60, 80, 70, 50, 35, 25, 40, 60, 50, 30, 15],
+          spokenText: 'Welcome to Stripe developer enterprise partner services in San Francisco. Your web payment intents and webhook cluster configuration have passed PCI security verification. All systems are operational.',
+        },
+      },
+      {
+        id: 'msg_stripe_2',
+        senderId: 'company_stripe_usa',
+        senderName: 'Stripe USA Enterprise',
+        text: 'Your automated checkout integration is verified across all US and international currency routes with sub-100ms response time.',
+        timestamp: '10:15 AM',
+        isOutgoing: false,
+        status: 'read',
+        codeBlock: {
+          language: 'typescript',
+          filename: 'stripe-checkout-session.ts',
+          code: `import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2023-10-16',
+});
+
+export async function createClientProjectCheckout(amountCents: number, clientEmail: string) {
+  return await stripe.checkout.sessions.create({
+    payment_method_types: ['card', 'us_bank_account'],
+    line_items: [{
+      price_data: {
+        currency: 'usd',
+        product_data: { name: 'Full-Stack Website & Custom AI Chatbot Development' },
+        unit_amount: amountCents,
+      },
+      quantity: 1,
+    }],
+    mode: 'payment',
+    customer_email: clientEmail,
+    success_url: 'https://emerald.dev/success?session_id={CHECKOUT_SESSION_ID}',
+  });
+}`,
+        },
       },
     ],
   },

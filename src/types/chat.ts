@@ -1,10 +1,20 @@
+export interface ClientLeadInfo {
+  projectType: 'Website Development' | 'Custom AI Chatbot' | 'Full-Stack Web App' | 'E-Commerce & Chatbot';
+  budget: string;
+  location: string;
+  companyName: string;
+  whatsappNumber: string;
+  status: 'New Lead' | 'In Discussion' | 'Contract Ready';
+  scope: string;
+}
+
 export interface Participant {
   id: string;
   name: string;
   avatar: string;
   role: string;
   isAI: boolean;
-  category?: 'Architecture' | 'Code Review' | 'Design & UX' | 'Data & SQL' | 'Writing' | 'Company & KRA' | 'Team Member';
+  category?: 'Architecture' | 'Code Review' | 'Design & UX' | 'Data & SQL' | 'Writing' | 'Company & KRA' | 'USA Enterprise' | 'Client Lead' | 'Team Member';
   status: 'online' | 'offline' | 'typing' | 'away';
   statusText?: string;
   bio: string;
@@ -14,6 +24,10 @@ export interface Participant {
   email?: string;
   model?: string;
   temperature?: number;
+  location?: string;
+  isUSCompany?: boolean;
+  clientLead?: ClientLeadInfo;
+  whatsappNumber?: string;
 }
 
 export interface SectorCount {
@@ -44,6 +58,8 @@ export interface CompanyCountData {
 export interface VoiceNote {
   durationSec: number;
   waveform: number[];
+  spokenText?: string;
+  audioBlobUrl?: string;
 }
 
 export interface PollOption {
@@ -94,6 +110,7 @@ export interface Message {
   suggestions?: string[];
   codeBlock?: CodeBlock;
   companyStats?: CompanyCountData;
+  clientLeadCard?: ClientLeadInfo;
   attachment?: Attachment;
   voiceNote?: VoiceNote;
   poll?: PollData;
@@ -114,7 +131,7 @@ export interface Conversation {
   draftText?: string;
 }
 
-export type ChatFilter = 'all' | 'unread' | 'ai' | 'teams' | 'favorites';
+export type ChatFilter = 'all' | 'client_leads' | 'us_companies' | 'unread' | 'ai' | 'teams' | 'favorites';
 
 export interface CallState {
   isActive: boolean;

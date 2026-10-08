@@ -11,13 +11,15 @@ import {
   Sparkles,
   MapPin,
   X,
+  Trash2,
+  Check,
 } from 'lucide-react';
 import { Participant } from '../types/chat';
 
 interface MessageComposerProps {
   participant: Participant;
   onSendMessage: (text: string) => void;
-  onSendVoiceNote: () => void;
+  onSendVoiceNote: (audioBlobUrl?: string, spokenText?: string) => void;
   onSendImage: () => void;
   onSendPoll: (question: string, options: string[]) => void;
   isGeneratingAI: boolean;
@@ -39,7 +41,14 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
   const [showPollCreator, setShowPollCreator] = useState(false);
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState(['', '']);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordSecs, setRecordSecs] = useState(0);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   // Auto-resize textarea up to 120px
   useEffect(() => {
@@ -52,6 +61,82 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
     }
   }, [inputText]);
 
+  // Clean up recording on unmount
+  useEffect(() => {
+    return () => {
+      if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  const startVoiceRecording = async () => {
+    setIsRecording(true);
+    setRecordSecs(0);
+    audioChunksRef.current = [];
+
+    recordTimerRef.current = setInterval(() => {
+      setRecordSecs((s) => s + 1);
+    }, 1000);
+
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        streamRef.current = stream;
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+
+        mediaRecorder.start(100);
+      }
+    } catch (err) {
+      console.warn('Microphone permission not granted, will use synthesized voice fallback:', err);
+    }
+  };
+
+  const stopAndSendRecording = () => {
+    if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        onSendVoiceNote(audioUrl, 'Voice message recorded from microphone.');
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((t) => t.stop());
+        }
+      };
+      mediaRecorderRef.current.stop();
+    } else {
+      // Fallback with audible message
+      onSendVoiceNote(
+        undefined,
+        `Hey, this is Alex Rivera. Just following up on the ${participant.name} project telemetry. All looks good.`
+      );
+    }
+
+    setIsRecording(false);
+    setRecordSecs(0);
+  };
+
+  const cancelRecording = () => {
+    if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+    }
+    setIsRecording(false);
+    setRecordSecs(0);
+  };
+
   const handleSend = () => {
     if (!inputText.trim() || isGeneratingAI) return;
     onSendMessage(inputText.trim());
@@ -61,6 +146,12 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
+  };
+
+  const formatRecTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -214,80 +305,114 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
 
       {/* Main Composer Row */}
       <div className="flex items-end gap-2 max-w-5xl mx-auto">
-        {/* Floating Input Pill Container */}
-        <div className="flex-1 flex items-end gap-1 sm:gap-2 bg-white rounded-3xl border border-[#E9EDEF] px-2.5 sm:px-3 py-1.5 shadow-xs">
-          {/* Emoji Toggle */}
-          <button
-            type="button"
-            onClick={() => {
-              setShowEmojiPicker((prev) => !prev);
-              setShowAttachMenu(false);
-            }}
-            className="p-2 text-[#54656F] hover:text-[#128C7E] rounded-full transition-colors shrink-0"
-            title="Emoji drawer"
-          >
-            <Smile className="w-5 h-5" />
-          </button>
+        {isRecording ? (
+          <div className="flex-1 flex items-center justify-between bg-red-50 border border-red-200 rounded-3xl px-4 py-2 shadow-xs animate-in fade-in duration-150">
+            <div className="flex items-center gap-2.5">
+              <span className="w-3 h-3 rounded-full bg-red-600 animate-ping" />
+              <span className="text-xs font-bold text-red-700">Recording voice...</span>
+              <span className="font-mono text-xs font-semibold text-red-900 bg-white px-2 py-0.5 rounded-full border border-red-200">
+                {formatRecTime(recordSecs)}
+              </span>
+            </div>
 
-          {/* Attachment Paperclip */}
-          <button
-            type="button"
-            onClick={() => {
-              setShowAttachMenu((prev) => !prev);
-              setShowEmojiPicker(false);
-            }}
-            className="p-2 text-[#54656F] hover:text-[#128C7E] rounded-full transition-colors shrink-0"
-            title="Attach media, poll, or voice note"
-          >
-            <Paperclip className="w-5 h-5" />
-          </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={cancelRecording}
+                className="p-1.5 rounded-full hover:bg-red-100 text-red-600 transition-colors"
+                title="Cancel voice recording"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={stopAndSendRecording}
+                className="px-3 py-1 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-1 shadow-xs transition-colors"
+                title="Send recorded voice"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Send</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Floating Input Pill Container */
+          <div className="flex-1 flex items-end gap-1 sm:gap-2 bg-white rounded-3xl border border-[#E9EDEF] px-2.5 sm:px-3 py-1.5 shadow-xs">
+            {/* Emoji Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                setShowEmojiPicker((prev) => !prev);
+                setShowAttachMenu(false);
+              }}
+              className="p-2 text-[#54656F] hover:text-[#128C7E] rounded-full transition-colors shrink-0"
+              title="Emoji drawer"
+            >
+              <Smile className="w-5 h-5" />
+            </button>
 
-          {/* Text Area */}
-          <textarea
-            ref={textareaRef}
-            rows={1}
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              participant.isAI
-                ? `Message ${participant.name} (${participant.category || 'AI Agent'})...`
-                : `Type a message to ${participant.name}...`
-            }
-            className="flex-1 py-1 px-1 bg-transparent text-[15px] leading-[21px] text-[#1F2C34] placeholder-[#8696A0] resize-none focus:outline-none min-h-[24px] max-h-[120px]"
-          />
+            {/* Attachment Paperclip */}
+            <button
+              type="button"
+              onClick={() => {
+                setShowAttachMenu((prev) => !prev);
+                setShowEmojiPicker(false);
+              }}
+              className="p-2 text-[#54656F] hover:text-[#128C7E] rounded-full transition-colors shrink-0"
+              title="Attach media, poll, or voice note"
+            >
+              <Paperclip className="w-5 h-5" />
+            </button>
 
-          {/* Quick Camera Trigger */}
-          <button
-            type="button"
-            onClick={onSendImage}
-            className="p-2 text-[#54656F] hover:text-[#128C7E] rounded-full transition-colors shrink-0 hidden sm:block"
-            title="Send photo"
-          >
-            <Camera className="w-5 h-5" />
-          </button>
-        </div>
+            {/* Text Area */}
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                participant.isAI
+                  ? `Message ${participant.name} (${participant.category || 'AI Agent'})...`
+                  : `Type a message to ${participant.name}...`
+              }
+              className="flex-1 py-1 px-1 bg-transparent text-[15px] leading-[21px] text-[#1F2C34] placeholder-[#8696A0] resize-none focus:outline-none min-h-[24px] max-h-[120px]"
+            />
+
+            {/* Quick Camera Trigger */}
+            <button
+              type="button"
+              onClick={onSendImage}
+              className="p-2 text-[#54656F] hover:text-[#128C7E] rounded-full transition-colors shrink-0 hidden sm:block"
+              title="Send photo"
+            >
+              <Camera className="w-5 h-5" />
+            </button>
+          </div>
+        )}
 
         {/* Dynamic Circular Send / Mic Button */}
-        <button
-          type="button"
-          onClick={inputText.trim() ? handleSend : onSendVoiceNote}
-          disabled={isGeneratingAI}
-          className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95 shadow-md ${
-            inputText.trim()
-              ? 'bg-[#128C7E] hover:bg-[#075E54] text-white'
-              : 'bg-[#128C7E] hover:bg-[#075E54] text-white'
-          } ${isGeneratingAI ? 'opacity-70 cursor-not-allowed' : ''}`}
-          title={inputText.trim() ? 'Send message' : 'Record voice memo'}
-        >
-          {isGeneratingAI ? (
-            <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-          ) : inputText.trim() ? (
-            <Send className="w-5 h-5 ml-0.5" />
-          ) : (
-            <Mic className="w-5 h-5" />
-          )}
-        </button>
+        {!isRecording && (
+          <button
+            type="button"
+            onClick={inputText.trim() ? handleSend : startVoiceRecording}
+            disabled={isGeneratingAI}
+            className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95 shadow-md ${
+              inputText.trim()
+                ? 'bg-[#128C7E] hover:bg-[#075E54] text-white'
+                : 'bg-[#128C7E] hover:bg-[#075E54] text-white'
+            } ${isGeneratingAI ? 'opacity-70 cursor-not-allowed' : ''}`}
+            title={inputText.trim() ? 'Send message' : 'Record voice memo with microphone'}
+          >
+            {isGeneratingAI ? (
+              <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            ) : inputText.trim() ? (
+              <Send className="w-5 h-5 ml-0.5" />
+            ) : (
+              <Mic className="w-5 h-5" />
+            )}
+          </button>
+        )}
       </div>
 
       {/* Poll Creation Modal */}
